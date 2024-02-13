@@ -1,0 +1,593 @@
+including the GMFHS_Managed_Real_Objects_Class, the<br>
+GMFHS_Aggregate_Objects_Class, and GMFHS_Shadow_Objects_Class<br>
+<b>Input:</b> The following input is required for DUIFCUUS_Update_User_Status<br>
+<b>method:</b><br>
+. A 4-byte mask specifying which bits of UserStatus to change<br>
+. A 4-byte UserStatus containing the new values<br>
+. An 8-byte character field containing the operator ID, method name, or product
+that is changing the UserStatus field<br>
+. A 20 byte block of reserved fields<br><br>
+See the IBM Tivoli NetView for z/OS Data Model Reference for a description of the UserStatus field, including bit values<br><br>
+The following examples illustrate how to set the UserStatus bits. The bits have
+been split into lines to help show the different values.<br>
+<b>Required bits:</b><br>
+. First 16 bytes contain the mask, UserStatus and operator ID<br>
+. Next 20 bytes are reserved.<br><br>
+The following example RODM load function primitive statement indicates that
+OPER1 set the mark bit for the WESTCTR object.<br>
+ OP ’GMFHS_Aggregate_Objects_Class’.’WESTCTR’.’UpdateUserStatus’<br>&nbsp;&nbsp;&nbsp;&nbsp;
+INVOKED_WITH (SELFDEFINING)<br>&nbsp;&nbsp;&nbsp;&nbsp;
+((ANONYMOUSVAR)X’8000000080000000D6D7C5D9F1404040’<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ ’0000000000000000000000000000000000000000’);<br><br>
+ The following example RODM load function primitive statement indicates that
+ OPER1 cleared the mark bit for the WESTCTR object.<br>
+ OP ’GMFHS_Aggregate_Objects_Class’.’WESTCTR’.’UpdateUserStatus’<br>&nbsp;&nbsp;&nbsp;&nbsp;
+INVOKED_WITH (SELFDEFINING)<br>&nbsp;&nbsp;&nbsp;&nbsp;
+((ANONYMOUSVAR)X’8000000080000000D6D7C5D9F1404040’<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ ’0000000000000000000000000000000000000000’);<br><br>
+<b> Notes:</b><br>
+1. The minimum number of bytes that can be sent as input to DUIFCUUS is 36.
+ Set the mask, UserStatus, and operator ID as desired and set the remaining 20
+ bytes to zero.<br>
+ 2. When specifying an operator ID:<br>
+. The operator ID must be 8 bytes<br>
+ . The operator ID can be all blanks<br><br>
+ The DUIFCUUS method restricts the bits that can be changed based on the class of
+ the object being changed.<br>
+ . The marked bit (0x80000000) can be changed for any object.<br>
+ . The suspended (0x20000000) and automatically clear suspended (0x60000000)
+ bits can be changed only for objects of classes that are children of the
+ GMFHS_Real_Objects_Class.<br><br>
+<b> Note: </b>A shortcut to suspending real objects is possible by setting the suspended
+ bit of an aggregate. The aggregate itself is not suspended; instead the Child<br>
+ Suspended bit (0x00800000) is set for the aggregate and all real objects who are<br>
+children of the aggregate inherit the suspended bit. The automatic resume bit
+ can be set in addition to the suspended bit, and it will also be inherited by the
+ real object children.<br>
+ . The child suspended bit (0x00800000) can be cleared for an aggregate. The
+ suspended and automatic resume bits of all real object children of the aggregate
+ will also be cleared.<br>
+ . The aggregate threshold inconsistency bit (0x08000000) can be changed only for
+ objects of class GMFHS_Aggregate_Objects_Class.<br>
+ . The automation in progress bit (0x04000000) can be changed for any object.<br>
+ . The not monitored bit can be changed only for objects of children that are
+ children of the GMFHS_Real_Objects_Class.<br><br>
+<b> Output: </b>If this method is triggered using the EKG_TriggerNamedMethod
+ function, supply a response block for the output. The response block must be at
+ least 22 bytes. The Concat_of_strings field in the response block is a SelfDefining
+ string with the following format:<br>
+ Table 215. Output from DUIFCUUS Method<br>
+<blockquote>
+<table rules="rows">
+<tr><th> Offset</th>  <th>Length</th> <th>Value</th>  <th>Description</th></tr>
+    <tr><td> 000</td><td>2</td><td>12</td><td>Total length of SelfDefining string</td></tr>
+    <tr><td> 002</td><td>2</td><td>30</td><td>Data type AnonymousVar</td></tr>
+    <tr><td>004</td><td>2</td><td>8</td><td>Length of AnonymousVar data</td></tr>
+    <tr><td>006</td><td>8</td><td> </td><td> Value of timestamp subfield of UserStatus field
+ after update</td></tr>
+</table></blockquote><br>
+    If this method encounters errors, it sets a return and reason code and writes a type
+ 1 record to the RODM log. Table 204 on page 487 lists the reason codes that can be
+ returned by this method.<br><br>
+<h2> DUIFECDS: Change Display Status Method</h2>
+  This method is a named method that is installed on the ChangeDisplayStatus field
+ of all objects that are defined on the GMFHS_Managed_Real_Objects_Class.<br>
+<b> Function: </b>This method changes the DisplayStatus field of an object of the
+ GMFHS_Managed_Real_Objects_Class and reports to the caller the effect of the
+ change. The DisplayStatus field is changed only if one of the following conditions
+ is satisfied:<br>
+. The unconditional change input parameter is non-zero<br>
+ . The time input parameter is greater-than or equal-to the
+ SourceStatusUpdateTime field of the object to be changed<br><br>
+ The following example RODM load function primitive statement sets the
+ DisplayStatus of object TRMD401 to 129 (satisfactory) only if the value of the
+ SourceStatusUpdateTime field is less-than or equal-to 930402143000Z0000.<br>
+ OP ’GMFHS_Managed_Real_Objects_Class’.’TRMD401’.’ChangeDisplayStatus’<br>&nbsp;&nbsp;&nbsp;
+INVOKED_WITH (SELFDEFINING)<br>&nbsp;&nbsp;&nbsp;
+((ANONYMOUSVAR)X’000000810011F9F3F0F4F0F2F1F4F3F0F0F0E9F0F0F0F00000’);<br><br>
+<b> Input: </b>The input is standard for a named method. The following
+ short_lived_parm input is required for DUIFECDS_Change_Display_Status<br>
+ method:<br>
+ . Display_status (Integer) New DisplayStatus<br>
+. Source_status_time (CharVar(17)) New SourceStatusUpdateTime in UTC
+ (Coordinated Universal Time) format. The time stamp provided to DUIFECDS
+ must be normalized to UTC, that is, the sign and offset portions of the time
+ stamp must be Z0000.<br>
+ . Unconditional_change (Smallint). If 0, this method changes the DisplayStatus of
+ the target object only if the SourceStatusUpdateTime field of the target object is
+ less than the Source_status_time input parameter. If not 0, this method changes
+ the DisplayStatus of the target object without checking the Source_status_time
+ input parameter.<br>
+<b> Output: </b>If this method is triggered using the EKG_TriggerNamedMethod
+ function, supply a response block for the output. The response block must be at
+ least 22 bytes. The Concat_of_strings field in the response block is a SelfDefining
+ string with the following format:<br>
+ Table 216. Output from DUIFECDS Method<br>
+<blockquote>
+<table rules="rows">
+    <tr><th>Offset</th><th>Length</th><th>
+ Value</th><th>Description</th></tr>
+    <tr><td>000</td><td>2</td><td>12</td><td> Total length of SelfDefining string</td></tr>
+    <tr><td>002</td><td>2</td><td>30</td><td> Data type AnonymousVar</td></tr>
+    <tr><td>004</td><td>2</td><td>16</td><td> Length of AnonymousVar data</td></tr>
+    <tr><td>006</td><td>4</td><td> </td><td> Integer new value of DisplayStatus field</td></tr>
+    <tr><td>010</td><td>4</td><td> </td><td> Integer previous value of DisplayStatus field</td></tr>
+    <tr><td>014</td><td>8</td><td> </td><td> Value of timestamp subfield of DisplayStatus
+ field after update</td></tr>
+    </table></blockquote>
+ If this method does not change the DisplayStatus field of the target object because
+ the unconditional change parameter is 0 and the time parameter is less than the
+ SourceStatusUpdateTime field, the method sets the output parameters as follows:<br>
+ . New DisplayStatus is set to the current value of DisplayStatus.<br>
+ . Previous DisplayStatus is set to the current value of DisplayStatus.<br>
+ . Timestamp is set to 0.<br>
+ If this method encounters errors, it sets a return and reason code and writes a type
+ 1 record to the RODM log. Table 204 on page 487 lists the reason codes that can be
+ returned by this method.<br><br>
+<h2> DUIFFAWS: Aggregation Warm Start Method</h2>
+ This is an object-independent method that is run to initialize the fields related to
+ status aggregation in the real and aggregate objects in the RODM data cache.
+ GMFHS runs this method:<br>
+ . During initialization of the configuration definition at startup<br>
+.  When GMFHS recovers a lost connection to RODM<br>
+ . When a CONFIG NETWORK command is processed<br>
+To disable the DUIFFAWS method, code the AGGRST=NO parameter in the
+ GMFHS startup procedure or code LCON-AGGRST-REQUIRED=NO in the
+ GMFHS DUIGINIT file.<br><br>
+<b> Function:</b>This method reinitializes:<br>
+ . The DefaultAggregationPriorityValue field of each real object that is linked to a
+ Display_Resource_Type_Class object<br>
+v The following fields of each aggregate object that is linked to a
+ Display_Resource_Type_Class object:<br>
+– NOXCPTCount<br>
+– PriorityXCPTCount<br>
+– SuspendedCount<br>
+– StatusGroupCounts<br>
+– TotalRealResourceCount<br>
+– UnknownCount<br>
+– XCPTCount<br>
+After reinitializing these fields, this method recalculates the status for each
+ aggregate object.<br><br>
+You can trigger the DUIFFAWS method using the RODM load function if a failure
+ or application error causes one or more of the aggregate object fields in the
+ previous list to be incorrect.<br><br>
+ The following RODM load function statement triggers the DUIFFAWS method:<br>
+ OP DUIFFAWS INVOKED_WITH;<br><br>
+<b> Input: </b>There are no input parameters for this method.<br><br>
+<b>Output: </b>If this method encounters errors, it sets a return and reason code and
+ writes a type 1 record to the RODM log. Table 204 on page 487 lists the reason
+ codes that can be returned by this method.<br><br>
+<h2>DUIFECDS: Change Display Status Method</h2>
+ This method is a named method that is installed on the ChangeDisplayStatus field
+ of all objects that are defined on the GMFHS_Managed_Real_Objects_Class.<br>
+ This method is a named method that is installed on the ChangeDisplayStatus field
+ <b>Function: </b>This method changes the DisplayStatus field of an object of the
+ GMFHS_Managed_Real_Objects_Class and reports to the caller the effect of the
+ change. The DisplayStatus field is changed only if one of the following conditions
+ is satisfied:<br>
+ . The unconditional change input parameter is non-zero<br>
+ . The time input parameter is greater-than or equal-to the
+ SourceStatusUpdateTime field of the object to be changed<br><br>
+ The following example RODM load function primitive statement sets the
+ DisplayStatus of object TRMD401 to 129 (satisfactory) only if the value of the
+ SourceStatusUpdateTime field is less-than or equal-to 930402143000Z0000.<br>
+OP ’GMFHS_Managed_Real_Objects_Class’.’TRMD401’.’ChangeDisplayStatus’
+ INVOKED_WITH (SELFDEFINING)<br>
+ ((ANONYMOUSVAR)X’000000810011F9F3F0F4F0F2F1F4F3F0F0F0E9F0F0F0F00000’);<br><br>
+<b> Input: </b>The input is standard for a named method. The following
+ short_lived_parm input is required for DUIFECDS_Change_Display_Status<br>
+<b> method:</b><br>
+ . Display_status (Integer) New DisplayStatus<br>
+<h2>DUIFFRAS: Recalculate Aggregate Status Method</h2>
+This object-independent method can be triggered to recalculate the DisplayStatus
+ of all aggregate objects.<br><br>
+<b>Function: </b>This method recalculates the status of every aggregate object based on
+ each aggregate's status counter.<br><br>
+<b>Input: </b>This method requires no input parameters. This method can be triggered
+ with the following RODM load function primitive statement:<br>
+&nbsp;&nbsp;&nbsp;&nbsp; OP DUIFFRAS INVOKED_WITH;<br><br>
+<b>Output:</b>If this method encounters errors, it sets a return and reason code and
+ writes a type 1 record to the RODM log. Table 204 on page 487 lists the reason
+ codes that can be returned by this method.<br><br>
+<h2>DUIFFSUS: Set Unknown Status Method</h2>
+This object-independent method is triggered to set the DisplayStatus field value of
+ all the real objects linked to the Resources field of a specified<br>
+ Non_SNA_Domain_Class object to 132 (unknown). GMFHS triggers this method:<br>
+. After the configuration definition is initialized for each non-SNA for which the
+ DUIFFIRS method is not triggered<br>
+ . When the AgentStatus field of an NMG_Class object that is linked to the
+ ReportsToAgent field of the Non_SNA_Domain_Class object changes from 1
+ (satisfactory) or 3 (intermediate) to 0 (unknown) or 2 (unsatisfactory) and the
+ AgentStatusEffect field value indicates that the ability to receive alerts for the
+ resources in the domain is affected by the AgentStatus of the NMG<br>
+. When GMFHS receives an alert that indicates the transaction program or
+ element manager associated with the domain is down<br><br>
+<b> Function: </b>This method sets value of the DisplayStatus field of all real resource
+ objects linked to the Resources field of the specified Non_SNA_Domain_Class
+ object to 132 (unknown). It sets the value of the SourceStatusUpdateTime field of
+ each of these objects to the specified value.<br><br>
+<b>Input: </b>The inputs required for DUIFFSUS_Set_Unknown_Status method are:<br>
+ . DomainObjectID representing Domain's RODM object identifier<br>
+. StatusUpdateTime representing New value for SourceStatusUpdateTime field in
+ UTC format<br>
+The following hex string is an example of the input parameter to the DUIFFSUS
+ method. This example specifies a target object in the SNA_Domain_Class which
+ has a RODM object identifier value of X'0000005B000C34AA'. The time is specified
+ as 1430Z on 2 May, 2013. The input parameter is:<br>&nbsp;&nbsp;&nbsp;
+X'0000005B000C34AAF1F3F0F5F0F2F1F4F3F0F0F0E9F0F0F0F00001'<br>
+<b>Output:</b>If this method encounters errors, it sets a return and reason code and
+ writes a type 1 record to the RODM log. Table 204 on page 487 lists the reason
+ codes that can be returned by this method.<br>
+<h2>DUIFRFDS: Refresh DisplayStatus Change Method DUIFCRDC</h2>
+This object-independent method can be run by any application to change the
+ DisplayStatus field to the current DisplayStatus value for every real and aggregate
+ resource defined in RODM.<br><br>
+<b> Function: </b>This method is useful when the DisplayStatus mapping table,
+ DUIFSMT, has been changed. Instead of waiting for a status change from the
+ network to trigger an exception view update, method DUIFRFDS can be run to
+ cause the status change, which recalculates the exception state of the objects. The
+ appropriate exception views are then updated.<br>
+<b>Input: </b>This method requires no input parameters and can be triggered with the
+ following RODM load function primitive statement:<br><br>&nbsp;&nbsp;&nbsp;
+ See sample CNMSJH13 for an example of triggering the method.<br>
+<b>Output: </b>If this method encounters errors, it sets a return and reason code and
+ writes a type 1 record to the RODM log. Table 204 on page 487 lists the reason
+ codes that can be returned by this method.<br>
+<h2>DUIFVCFT: Change Exception State</h2>
+ This object-independent method can be run by a user method to change the
+ exception state of an object.<br><br>
+<b> Function: </b>The user method that runs method DUIFVCFT is specified by the
+ USRXMETH keyword in DisplayStatus mapping table DUIFSMT. Sample user
+ methods DUIFCUXM and DUIFCUX2 run method DUIFVCFT to set either value
+ XCPT or NOXCPT in the ResourceTraits field the same way a real DisplayStatus
+ change is processed. DUIFVCFT will then trigger a method to determine if the
+ change in exception state will cause the object to be added to or deleted from any
+ open exception views.<br>
+<b> Input: </b>Table 217 lists the input parameters for method DUIFVCFT:<br>
+able 217. Input Values for DUIFVCFT<br>
+<blockquote>
+<table rules="rows">
+<tr><th>Parameter</th><th>Data Type</th><th>Length of Field</th></tr>
+<tr><td> Total_Length</td><td>SMALLINT</td><td>2</td></tr>
+<tr><td>Data_Type</td><td>SMALLINT</td><td> 2</td></tr>
+<tr><td>Data_Length</td><td>SMALLINT</td><td> 2</td></tr>
+<tr><td> Resource_Object_ID</td><td>OBJECTID</td><td>8</td></tr>
+<tr><td> Requested_exception_status</td><td>
+ INTEGER</td><td>4</td></tr>
+</table></blockquote>
+<b>Output: </b>The ResourceTraits field of the resource is updated to reflect the
+ requested exception state.<br><br>
+ If this method encounters errors, it sets a return and reason code and writes a type
+ 1 record to the RODM log. Table 204 on page 487 lists the reason codes that can be
+ returned by this method.<br><br>
+ <b> Notes:</b>
+ 1. Resource_Object_ID is the object id of the resource whose changed
+ DisplayStatus triggered the user method.<br>
+ 2. Set Requested_exception_status to 0 if you do not want the resource to have an
+ exception state. DUIFVCFT will set value NOXCPT in the ResourceTraits field
+ for this resource.<br>
+3. Set Requested_exception_status to 1 if you do want the resource to have an
+ exception state. DUIFVCFT will set value XCPT in the ResourceTraits field for
+ this resource.<br>
+ 4. See “Creating a DisplayStatus Method for Exception Views” on page 109 for
+ more information.<br>
+<h2> DUIFVINS: Install View Granularity Method (DUIFVNOT)</h2>
+ This object-independent method installs method DUIFVNOT on a class or field.<br><br>
+<b> Function: </b>DUIFVINS must be run for each new class or connectivity field that is
+ added to the data model.<br><br>
+ DUIFVNOT is inherited by all objects of a class. For a list of all the fields on which
+ GMFHS installs DUIFVNOT, see sample FLBTRDME.<br>
+<b> Input: </b>Table 218 lists the input parameters for method DUIFVINS:<br>
+ Table 218. Input Values for DUIFVINS<br>
+<blockquote>
+<table rules="rows">
+    <tr><th> Parameter</th><th>Data Type</th><th>Length of Field</th></tr>
+    <tr><td> enable_change_status</td><td>SMALLINT</td><td>2</td></tr>
+    <tr><td> rule</td><td>INTEGER</td><td>4</td></tr>
+    <tr><td>notification_method</td><td> OBJECTID</td><td>8</td></tr>
+    <tr><td> class</td><td>CLASSID</td><td>4</td></tr>
+    <tr><td> field</td><td>FIELDID</td><td>4</td></tr>
+    </table></blockquote>
+<b> enable_change_status</b>
+ This parameter is used to prevent view change notifications (VCNs) when
+ a field is set to its previous value.<br>
+ The values for this parameter are:<br>
+O Used if either the prev_val subfield does not exist on the field, or if
+ a VCN must be issued even if the field is changed to its previous
+ value.<br>
+1 Used if the prev_val subfield exists on the field, and if a VCN
+ must not be issued when the field is changed to its previous value.<br>
+<b> rule</b>The criteria used to determine if a field change results in a VCN being
+ issued. It is implicit in each of these rules, with the exception of<br>
+ANY_FIELD_OBJECT_CHANGE, that the objectID or classID and fieldID
+ involved in the change are used to construct at least one view that is
+ currently open.<br>
+ The values for this parameter are:<br>
+1 OBJECT_CHANGE: Send a view update if the field changes at the
+ object level.<br>
+2 VALUE_INCREASE: Send a view update if the field changes at the
+ object level and the value of the field increases.<br>
+3 VALUE_DECREASE: Send a view update if the field changes at the
+ object level and the value of the field decreases.<br>
+4  CONNECTIVITY: This rule applies to the ObjectLink and
+ ObjectLinkList data types. Send a view update if the field changes
+ at the object level and the link or unlink results in a change to the
+ connectivity displayed in the view. For the following view types,
+ only one of the objects needs to be currently in a view to indicate a
+ view change:<br>
+Configuration Parents<br>
+ Configuration Logical<br>
+ Configuration Physical<br>
+ Configuration Backbone<br>
+ Configuration Child<br>
+ Configuration Child II<br>
+ Configuration Child III<br>
+ For all other view types, both objects must be in a view to indicate
+ a view change.<br>
+5 CLASS_CHANGE: Send a view update if the field changes at the
+ class level.<br>
+6  OBJECT_OR_CLASS_CHANGE: Send a view update if the field
+ changes at the object or class level.<br>
+7 ANY_FIELD_OBJECT_CHANGE: Send a view update if the field
+ changes at the object level whether or not the field was used to
+ construct the view. This is for customers that want to monitor
+ fields that are not involved in view building, including exception
+ views. The other rules do not result in a VCN for exception views.
+ See “Defining Exception View Objects and Criteria” on page 98 for
+ more information.<br>
+5000 LU_CHANGE: Send a view update if the field changes on an
+ LU-type object and the monitoringLuCollection field indicates the
+ LU collection is not in transition.<br>
+<b> notification_method</b>
+The object ID of the notification method DUIFVNOT.<br>
+ class<br>
+ field<br>
+ The class ID on which DUIFVNOT must be installed.<br>
+ The field ID on which DUIFVNOT must be installed.<br>
+ The following is an example of a RODM loader statement to run DUIFVINS:<br>
+ OP DUIFVINS INVOKED_WITH (SELFDEFINING)<br>
+ (
+ (SMALLINT) 0<br>
+(INTEGER) 1<br>
+ (OBJECTID) EKG_Method.DUIFVNOT<br>
+ (CLASSID) GMFHS_Real_Objects_Class<br>
+ (FIELDID) GMFHS_Real_Objects_Class.DisplayResourceType<br>
+ );<br>
+<b>Output: </b>If this method encounters errors, it sets a return and reason code and
+ writes a type 1 record to the RODM log. Table 204 on page 487 lists the reason
+ codes that can be returned by this method.<br>
+<h2>Appendix A. RODM Tools</h2>
+ The NetView program provides the following tools for use with RODM:<br>
+. RODMView is an interactive application program for viewing and updating the
+ values of fields in the RODM data cache. See “RODMView.”<br>
+ . FLCARODM (RODM Access Facility) provides a fast and efficient REXX
+ interface to RODM. See “FLCARODM” on page 552.<br>
+ . RODM Collection Manager enables the arbitrary grouping of objects into views
+ or aggregates and dynamically manages the views or aggregates. See “RODM
+ Collection Manager” on page 597.<br>
+ . The BLDVIEWS tool is used for defining custom views that match your network
+ layout and your preferred style of monitoring it. See “BLDVIEWS” on page 598<br>
+ . DELVIEWS can be used for deleting certain customized views. See “DELVIEWS”
+ on page 671.<br>
+ Some panels in this section show GMFHS information.<br>
+<h2> RODMView
+</h2>
+ Use the RODMView application program to view and update the values of fields
+ in the RODM data cache. RODMView runs under an OST task in the NetView
+ program. The following RODMView topics are covered:<br>
+ . Navigating within RODMView<br>
+ . RODMView restrictions<br>
+ . Starting RODMView<br>
+ . Using the RODMView fu<br>
+<h2> Navigating within RODMView</h2>
+ You can navigate within RODMView in the following ways:<br>
+ v
+.Using the main menu<br>
+ . Using accelerator PF keys<br>
+ . Using the PF keys displayed at the bottom of a pane<br>
+ Panel data entry fields are identified by underscored lines, and a command line is
+ at the bottom of each panel.<br><br>
+<h2> Navigating Using Menus</h2>
+ RODMView has a main menu panel, which is illustrated in Figure 92 on page 516.
+ To navigate to the option that you want, enter the corresponding selection number,
+ or select the appropriate line with the cursor and press Enter. If you enter an
+ option that is not valid, an error message is displayed.<br><br>
+ From any RODMView panel, you can navigate directly to the panel of another
+ RODMView function by pressing an associated accelerator PF key. Accelerator PF
+ keys PF13–PF22 correspond to option numbers 1–10 respectively, as shown in
+ Table 219 on page 514.<br>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
